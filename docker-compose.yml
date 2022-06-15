@@ -1,0 +1,63 @@
+version: '3.7'
+
+volumes:
+  # Store the acme certificate in volume, in order not to recreate one on each
+  # container recreation (might exhaust the quota, and requires to wait until we
+  # get the proper certificate)
+  acme:
+
+secrets:
+  auth_users:
+    file: secrets-prod/auth_users.txt
+
+services:
+  traefik:
+    image: traefik:v2.7
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8100:8000"
+    expose:
+      # traefik dashboard port
+      - 8080
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # On map la conf statique dans le conteneur
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - acme:/acme
+    secrets:
+      - auth_users
+    networks:
+      - proxy_network
+    labels:
+      # Permettre à ce conteneur d'être accessible par traefik
+      # Pour plus d'information, voir : https://docs.traefik.io/providers/docker/#exposedbydefault
+      - "traefik.enable=true"
+      # Configures access to the traefik dashboard (auth required)
+      - "traefik.http.routers.dashboard.rule=Host(`admin.ird1.pigeo.fr`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.usersFile=/run/secrets/auth_users"
+
+  # whoami:
+  #   image: containous/whoami
+  #   container_name: whoami
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.whoami.tls=true"
+  #     - "traefik.http.routers.whoami.entrypoints=websecure"
+  #     - "traefik.http.routers.whoami.rule=Host(`hm1.pigeosolutions.fr`) && PathPrefix(`/whoami`)"
+  #     - "traefik.http.routers.whoami.tls.certresolver=letsEncrypt"
+  #     - "traefik.http.routers.whoami.tls.domains[0].main=hm1.pigeosolutions.fr"
+  #     # Si le port est différent de 80, utilisez le service suivant:
+  #     # - "traefik.http.services.<service_name>.loadbalancer.server.port=<port>"
+  #   networks:
+  #     - proxy_network
+
+networks:
+  proxy_network:

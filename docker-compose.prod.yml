@@ -1,0 +1,15 @@
+version: '3.7'
+
+services:
+  traefik:
+    labels:
+      - "traefik.http.routers.dashboard.rule=Host(`admin.${FQDN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsEncrypt"
+      - "traefik.http.routers.dashboard.tls.domains[0].main=${FQDN}"
+      - "traefik.http.routers.dashboard.tls.domains[0].sans=admin.${FQDN}"
+  #
+  # whoami:
+  #   labels:
+  #     - "traefik.http.routers.whoami.rule=Host(`hm1.pigeosolutions.fr`) && PathPrefix(`/whoami`)"
+  #     - "traefik.http.routers.whoami.tls.certresolver=letsEncrypt"
+  #     - "traefik.http.routers.whoami.tls.domains[0].main=hm1.pigeosolutions.fr"

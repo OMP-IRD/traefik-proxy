@@ -1,0 +1,23 @@
+version: '3.7'
+
+secrets:
+  auth_users:
+    file: secrets-dev/auth_users.txt
+
+services:
+  traefik:
+    volumes:
+      # On map la conf statique dans le conteneur
+      - ./config/traefik-dev.yml:/etc/traefik/traefik.yml:ro
+      # On map la conf statique dans le conteneur
+      - ./config/config.yml:/etc/traefik/config.yml:ro
+      # On map les certificats dans le conteneur
+      - ./certs:/etc/certs:ro
+    secrets:
+      - auth_users
+    labels:
+      - "traefik.http.routers.dashboard.rule=(Host(`admin.localhost`) ||Host(`admin.hm1.pigeosolutions.fr`)  ||Host(`admin.127.0.0.1.traefik.me`) )  && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+
+  whoami:
+    labels:
+      - "traefik.http.routers.whoami.rule=(Host(`admin.localhost`) ||Host(`admin.hm1.pigeosolutions.fr`)
